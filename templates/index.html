@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ياسمينتي - مدربة العلاقة الحميمة</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body class="{{ settings.theme }}">
+  <div class="container">
+    <header>
+      <h1>مرحبًا بك مع ياسمينتي</h1>
+      <div class="settings">
+        <label>الوضع:
+          <select id="theme-select">
+            <option value="dark" {% if settings.theme == "dark" %}selected{% endif %}>ليلي</option>
+            <option value="light" {% if settings.theme == "light" %}selected{% endif %}>فاتح</option>
+          </select>
+        </label>
+
+        <label>المزاج:
+          <select id="mood-select">
+            <option value="غزل" {% if settings.mood == "غزل" %}selected{% endif %}>غزل</option>
+            <option value="دلال" {% if settings.mood == "دلال" %}selected{% endif %}>دلال</option>
+            <option value="عتاب" {% if settings.mood == "عتاب" %}selected{% endif %}>عتاب</option>
+            <option value="هدوء" {% if settings.mood == "هدوء" %}selected{% endif %}>هدوء</option>
+            <option value="إثارة" {% if settings.mood == "إثارة" %}selected{% endif %}>إثارة</option>
+          </select>
+        </label>
+
+        <label>صورة ياسمين:
+          <select id="image-select">
+            <option value="realistic" {% if settings.image == "realistic" %}selected{% endif %}>واقعية</option>
+            <option value="anime" {% if settings.image == "anime" %}selected{% endif %}>أنثوية</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <main>
+      <div class="yasmin-image">
+        {% if settings.image == "realistic" %}
+          <img src="{{ url_for('static', filename='images/yasmin_real.png') }}" alt="ياسمين واقعية" />
+        {% else %}
+          <img src="{{ url_for('static', filename='images/yasmin_anime.png') }}" alt="ياسمين أنثوية" />
+        {% endif %}
+      </div>
+
+      <div class="chat-box">
+        <div id="chat-log"></div>
+        <input type="text" id="user-input" placeholder="اكتب رسالتك..." />
+        <button id="send-btn">إرسال</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const chatLog = document.getElementById("chat-log");
+    const userInput = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+    const themeSelect = document.getElementById("theme-select");
+    const moodSelect = document.getElementById("mood-select");
+    const imageSelect = document.getElementById("image-select");
+
+    function appendMessage(sender, text) {
+      const div = document.createElement("div");
+      div.className = sender;
+      div.textContent = text;
+      chatLog.appendChild(div);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    sendBtn.onclick = async () => {
+      const message = userInput.value.trim();
+      if (!message) return;
+      appendMessage("user-msg", message);
+      userInput.value = "";
+
+      const response = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      const data = await response.json();
+      appendMessage("bot-reply", data.reply);
+
+      if (data.voice_url) {
+        const audio = new Audio(data.voice_url);
+        audio.play();
+      }
+    };
+
+    function saveSettings() {
+      const settings = {
+        theme: themeSelect.value,
+        mood: moodSelect.value,
+        image: imageSelect.value,
+      };
+      fetch("/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      document.body.className = settings.theme;
+      updateImage(settings.image);
+    }
+
+    function updateImage(image) {
+      const imgContainer = document.querySelector(".yasmin-image img");
+      if (image === "realistic") {
+        imgContainer.src = "/static/images/yasmin_real.png";
+        imgContainer.alt = "ياسمين واقعية";
+      } else {
+        imgContainer.src = "/static/images/yasmin_anime.png";
+        imgContainer.alt = "ياسمين أنثوية";
+      }
+    }
+
+    themeSelect.onchange = saveSettings;
+    moodSelect.onchange = saveSettings;
+    imageSelect.onchange = saveSettings;
+
+    window.onload = () => {
+      saveSettings();
+    };
+  </script>
+</body>
+</html>
